@@ -1,0 +1,21 @@
+{
+  "name": "traceroute-visualizer",
+  "version": "1.0.0",
+  "description": "A student-level Computer Networks project to visualize real traceroute network paths.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "traceroute",
+    "computer-networks",
+    "network-visualization",
+    "icmp",
+    "routing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traceroute Visualizer | Computer Networks Project</title>
+  <meta name="description" content="A real-time Computer Networks diagnostic tool to visualize packet hops and network latency from client to destination using Windows tracert.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 3v18M3 12h18"/>
+            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">Traceroute Visualizer</h1>
+          <p class="app-subtitle">Visualize the path your network connection takes to reach a destination.</p>
+        </div>
+      </div>
+      <div class="header-badge">
+        <span class="pulse-indicator"></span>
+        <span id="system-os-badge">Live ICMP Tracer</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-layout">
+    
+    <!-- Control Dashboard Card -->
+    <section class="card control-card" aria-label="Traceroute Control Center">
+      <form id="trace-form" class="trace-form" onsubmit="return false;">
+        <div class="input-row">
+          <div class="input-wrapper">
+            <label for="destination-input" class="input-label">Destination Host or IP</label>
+            <div class="input-field-group">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              </span>
+              <input 
+                type="text" 
+                id="destination-input" 
+                name="destination" 
+                placeholder="Enter domain or IP address (e.g. google.com)" 
+                autocomplete="off" 
+                spellcheck="false"
+                required
+              >
+              <button type="button" id="clear-input-btn" class="clear-btn" title="Clear input" aria-label="Clear input">✕</button>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button type="submit" id="start-btn" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>Start Traceroute</span>
+            </button>
+            <button type="button" id="stop-btn" class="btn btn-danger" disabled>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+              </svg>
+              <span>Stop</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Destination Presets -->
+        <div class="quick-presets">
+          <span class="presets-label">Quick Destinations:</span>
+          <div class="presets-buttons">
+            <button type="button" class="preset-chip" data-dest="8.8.8.8">
+              <span class="chip-name">Google DNS</span>
+              <span class="chip-val">8.8.8.8</span>
+            </button>
+            <button type="button" class="preset-chip" data-dest="1.1.1.1">
+              <span class="chip-name">Cloudflare DNS</span>
+              <span class="chip-val">1.1.1.1</span>
+            </button>
+            <button type="button" class="preset-chip" data-dest="google.com">
+              <span class="chip-name">Google</span>
+              <span class="chip-val">google.com</span>
+            </button>
+            <button type="button" class="preset-chip" data-dest="127.0.0.1">
+              <span class="chip-name">Localhost</span>
+              <span class="chip-val">127.0.0.1</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Feedback & Error Banner -->
+        <div id="status-banner" class="status-banner hidden" role="status" aria-live="polite">
+          <div class="banner-spinner hidden" id="banner-spinner"></div>
+          <div class="banner-icon hidden" id="banner-icon">ℹ️</div>
+          <div class="banner-content">
+            <span id="banner-title" class="banner-title">Ready</span>
+            <span id="banner-detail" class="banner-detail"></span>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Network Session Meta Bar -->
+    <section class="card meta-info-card" aria-label="Network Session Metadata">
+      <div class="meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Local Host</span>
+          <span class="meta-value" id="meta-local-host">Client Computer</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Destination</span>
+          <span class="meta-value" id="meta-destination">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Protocol / Command</span>
+          <span class="meta-value" id="meta-protocol">ICMP / tracert</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Hops Discovered</span>
+          <span class="meta-value" id="meta-hop-count">0</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Execution Time</span>
+          <span class="meta-value" id="meta-duration">0.0s</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Summary Metrics -->
+    <section class="summary-section" aria-label="Results Summary">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Destination</span>
+            <span class="metric-icon">🎯</span>
+          </div>
+          <div class="metric-value text-truncate" id="sum-dest">—</div>
+          <div class="metric-sub" id="sum-dest-ip">IP: —</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Total Hops</span>
+            <span class="metric-icon">🔢</span>
+          </div>
+          <div class="metric-value" id="sum-total-hops">0</div>
+          <div class="metric-sub">Packets transmitted</div>
+        </div>
+
+        <div class="metric-card metric-success">
+          <div class="metric-header">
+            <span class="metric-title">Successful Hops</span>
+            <span class="metric-icon">✅</span>
+          </div>
+          <div class="metric-value" id="sum-success-hops">0</div>
+          <div class="metric-sub text-success">Responded with ICMP</div>
+        </div>
+
+        <div class="metric-card metric-danger">
+          <div class="metric-header">
+            <span class="metric-title">Failed Hops</span>
+            <span class="metric-icon">⚠️</span>
+          </div>
+          <div class="metric-value" id="sum-failed-hops">0</div>
+          <div class="metric-sub text-danger">Timed out / No response</div>
+        </div>
+
+        <div class="metric-card metric-info">
+          <div class="metric-header">
+            <span class="metric-title">Average Latency</span>
+            <span class="metric-icon">⚡</span>
+          </div>
+          <div class="metric-value" id="sum-avg-latency">—</div>
+          <div class="metric-sub">Mean round-trip time</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Visual Route View -->
+    <section class="card visual-route-card" aria-label="Visual Network Path">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Visual Route</h2>
+          <p class="section-subtitle">Hop-by-hop logical packet progression through intermediate network routers</p>
+        </div>
+        <div class="route-legend">
+          <span class="legend-item"><span class="legend-dot client-dot"></span> Client</span>
+          <span class="legend-item"><span class="legend-dot online-dot"></span> Online Hop</span>
+          <span class="legend-item"><span class="legend-dot timeout-dot"></span> Timeout</span>
+          <span class="legend-item"><span class="legend-dot dest-dot"></span> Destination</span>
+        </div>
+      </div>
+
+      <!-- Network Path Container -->
+      <div class="route-viewport" id="route-viewport">
+        <div class="route-container" id="visual-route-container">
+          <!-- Client Start Node -->
+          <div class="route-node node-client" id="client-node">
+            <div class="node-icon-box">💻</div>
+            <div class="node-body">
+              <div class="node-tag">START</div>
+              <div class="node-name">Your Computer</div>
+              <div class="node-ip">127.0.0.1 (Client)</div>
+            </div>
+          </div>
+
+          <!-- Empty Initial State Placeholder -->
+          <div class="route-empty-msg" id="route-empty-msg">
+            <div class="empty-icon">🌐</div>
+            <p>Enter a destination above and click <strong>Start Traceroute</strong> to visualize the real router path.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hop Inspector Side Drawer / Modal (Details for clicked hop) -->
+    <section class="card hop-details-card" id="hop-details-panel">
+      <div class="details-header">
+        <h3 class="details-title" id="details-title">Hop Inspector</h3>
+        <span class="details-hint">Click any hop card or table row for in-depth probe telemetry</span>
+      </div>
+      <div class="details-grid" id="details-grid">
+        <div class="detail-box">
+          <span class="detail-label">Hop Number</span>
+          <span class="detail-val" id="det-hop-num">—</span>
+        </div>
+        <div class="detail-box">
+          <span class="detail-label">Hostname</span>
+          <span class="detail-val text-truncate" id="det-hostname">—</span>
+        </div>
+        <div class="detail-box">
+          <span class="detail-label">IP Address</span>
+          <span class="detail-val font-mono" id="det-ip">—</span>
+        </div>
+        <div class="detail-box">
+          <span class="detail-label">Response Status</span>
+          <span class="detail-val" id="det-status">—</span>
+        </div>
+        <div class="detail-box">
+          <span class="detail-label">Probe 1 RTT</span>
+          <span class="detail-val" id="det-rtt1">—</span>
+        </div>
+        <div class="detail-box">
+          <span class="detail-label">Probe 2 RTT</span>
+          <span class="detail-val" id="det-rtt2">—</span>
+        </div>
+        <div class="detail-box">
+          <span class="detail-label">Probe 3 RTT</span>
+          <span class="detail-val" id="det-rtt3">—</span>
+        </div>
+        <div class="detail-box">
+          <span class="detail-label">Average Latency</span>
+          <span class="detail-val font-highlight" id="det-avg-latency">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Structured Hop Table -->
+    <section class="card table-card" aria-label="Hop-by-Hop Data Table">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Hop Routing Table</h2>
+          <p class="section-subtitle">Real telemetry data parsed from individual Windows tracert probes</p>
+        </div>
+        <span class="table-counter" id="table-counter">0 Hops</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="hop-table" id="hop-table">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 70px;">Hop</th>
+              <th scope="col">Hostname</th>
+              <th scope="col">IP Address</th>
+              <th scope="col">Response Time</th>
+              <th scope="col" style="width: 120px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="hop-table-body">
+            <tr class="empty-table-row">
+              <td colspan="5">No traceroute data yet. Start a trace to populate the hop table.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Raw Windows Tracert Terminal Output -->
+    <section class="card raw-output-card" aria-label="Raw Command Output">
+      <div class="terminal-header">
+        <div class="terminal-title-group">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">Windows Command Terminal — tracert</span>
+        </div>
+        <div class="terminal-actions">
+          <button type="button" id="copy-raw-btn" class="btn-terminal" title="Copy raw output">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy</span>
+          </button>
+          <button type="button" id="toggle-raw-btn" class="btn-terminal" aria-expanded="true">
+            <span id="toggle-raw-text">Hide Output</span>
+          </button>
+        </div>
+      </div>
+      <div class="terminal-body" id="raw-terminal-body">
+        <pre id="raw-output-pre"><code>Waiting for command execution...</code></pre>
+      </div>
+    </section>
+
+    <!-- Educational & Computer Networks Concepts Section -->
+    <section class="card educational-card" aria-label="Computer Networks Educational Guide">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Computer Networks Concepts Explained</h2>
+          <p class="section-subtitle">Academic guide to IP packet forwarding, ICMP protocol, and router discovery</p>
+        </div>
+        <span class="badge-academic">SEM 5 | CN 302</span>
+      </div>
+
+      <!-- TTL Visual Walkthrough Diagram -->
+      <div class="concept-visual-flow">
+        <h3 class="concept-flow-title">How Traceroute Works (Step-by-Step TTL Mechanism)</h3>
+        <div class="flow-diagram">
+          <div class="flow-step">
+            <div class="step-num">Step 1</div>
+            <div class="step-card">
+              <span class="step-ttl">TTL = 1</span>
+              <p>Packet sent with Time-To-Live = 1. Router 1 decrements TTL to 0, drops the packet, and responds with <strong>ICMP Time Exceeded (Type 11)</strong>.</p>
+            </div>
+          </div>
+          <div class="flow-arrow">➔</div>
+          <div class="flow-step">
+            <div class="step-num">Step 2</div>
+            <div class="step-card">
+              <span class="step-ttl">TTL = 2</span>
+              <p>Packet passes Router 1 (TTL=1), reaches Router 2 (TTL=0). Router 2 drops packet and returns <strong>ICMP Time Exceeded</strong>.</p>
+            </div>
+          </div>
+          <div class="flow-arrow">➔</div>
+          <div class="flow-step">
+            <div class="step-num">Step 3</div>
+            <div class="step-card">
+              <span class="step-ttl">TTL = N</span>
+              <p>TTL increments until reaching destination. Destination returns <strong>ICMP Echo Reply (Type 0)</strong>, completing the trace.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Concepts Grid -->
+      <div class="concepts-grid">
+        <article class="concept-box">
+          <h4 class="concept-title">🌐 What is Traceroute?</h4>
+          <p class="concept-text">
+            Traceroute (<code>tracert</code> on Windows) is a network diagnostic utility used to discover and display the sequential path (sequence of routers or hops) that IP packets traverse across an internetwork from a source host to a destination host.
+          </p>
+        </article>
+
+        <article class="concept-box">
+          <h4 class="concept-title">🔄 What is a Hop?</h4>
+          <p class="concept-text">
+            In computer networking, a <strong>hop</strong> represents one intermediate routing step or device (such as a router, gateway, or switch) that forwards a data packet along the path between the sending client and receiving server.
+          </p>
+        </article>
+
+        <article class="concept-box">
+          <h4 class="concept-title">🏷️ What is an IP Address?</h4>
+          <p class="concept-text">
+            An <strong>Internet Protocol (IP) Address</strong> is a unique numerical identifier assigned to every device connected to a computer network (e.g., IPv4: <code>192.168.1.1</code> or IPv6: <code>2001:db8::1</code>). It facilitates packet addressing and routing across subnets.
+          </p>
+        </article>
+
+        <article class="concept-box">
+          <h4 class="concept-title">⚡ What is Latency (Round-Trip Time)?</h4>
+          <p class="concept-text">
+            <strong>Latency</strong> measures the time delay (in milliseconds, ms) required for an ICMP probe packet to travel from the client to a specific router and for the acknowledgment response to return back to the client.
+          </p>
+        </article>
+
+        <article class="concept-box">
+          <h4 class="concept-title">⏱️ What is Packet Loss / Timeout?</h4>
+          <p class="concept-text">
+            A <strong>"Request timed out" (<code>*</code>)</strong> occurs when an intermediate router does not reply within the timeout threshold. This is commonly caused by strict router firewall rules blocking ICMP traffic, rate-limiting, or congested network links.
+          </p>
+        </article>
+
+        <article class="concept-box">
+          <h4 class="concept-title">🔀 What is a Router?</h4>
+          <p class="concept-text">
+            A <strong>Router</strong> is a Layer 3 (Network Layer) networking hardware device that connects multiple computer networks and intelligently forwards IP packets between them by examining destination IP addresses against its routing table.
+          </p>
+        </article>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <p><strong>Traceroute Visualizer</strong> &bull; Computer Networks (CN 302) Mini Project</p>
+      <p class="footer-sub">Real-time Windows <code>tracert</code> ICMP packet path visualization tool</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
